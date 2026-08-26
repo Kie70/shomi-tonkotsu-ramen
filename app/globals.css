@@ -1,5 +1,3 @@
-@import 'tailwindcss';
-
 :root {
   --washi: #f2ecdf;
   --paper: #fbf7ee;
@@ -35,14 +33,26 @@ button, a { color: inherit; }
 }
 
 .scroll-track { height: 100svh; }
-.tasting-stage { position: relative; height: 100svh; overflow: hidden; isolation: isolate; outline: none; touch-action: pan-y; user-select: none; background: #d8bd94; }
+.tasting-stage {
+  position: relative;
+  height: 100svh;
+  display: grid;
+  grid-template-rows: 76px minmax(0, 1fr) clamp(190px, 22svh, 230px);
+  grid-template-areas: "header" "visual" "card";
+  overflow: hidden;
+  isolation: isolate;
+  outline: none;
+  touch-action: pan-y;
+  user-select: none;
+  background: #d8bd94;
+}
 .tasting-stage:focus-visible { box-shadow: inset 0 0 0 1px rgba(166, 77, 56, 0.48); }
 
 .site-header {
-  position: absolute;
+  position: relative;
   z-index: 20;
-  inset: 0 0 auto;
-  height: 76px;
+  grid-area: header;
+  height: auto;
   padding: 0 clamp(24px, 4.2vw, 76px);
   display: grid;
   grid-template-columns: 1fr auto auto;
@@ -50,7 +60,6 @@ button, a { color: inherit; }
   align-items: center;
   border-bottom: 1px solid rgba(67, 52, 37, 0.14);
   background: linear-gradient(180deg, rgba(247, 242, 232, 0.9), rgba(247, 242, 232, 0.68));
-  backdrop-filter: blur(12px);
 }
 
 .brand {
@@ -75,12 +84,12 @@ button, a { color: inherit; }
 .transition-switch button:focus-visible { outline: 1px solid var(--vermilion); outline-offset: 3px; }
 .transition-switch i { width: 1px; height: 10px; background: rgba(67, 52, 37, 0.18); }
 
-.dish-heading { position: absolute; z-index: 8; top: 102px; left: 50%; width: max-content; text-align: center; transform: translateX(-50%); }
+.dish-heading { position: relative; z-index: 8; grid-area: visual; align-self: start; justify-self: center; top: 28px; width: max-content; text-align: center; pointer-events: none; }
 .dish-heading p { margin: 0 0 7px; color: var(--vermilion); font: 600 9px/1 var(--font-geist-mono), monospace; letter-spacing: 0.25em; }
 .dish-heading h1 { margin: 0; font: 500 clamp(26px, 2.5vw, 40px)/1.08 "Yu Mincho", "Hiragino Mincho ProN", serif; letter-spacing: 0.2em; }
 .dish-heading span { display: block; margin-top: 7px; color: rgba(48, 42, 36, 0.65); font: 500 9px/1 serif; letter-spacing: 0.18em; }
 
-.ramen-figure { position: absolute; z-index: -1; inset: 0 0 auto; height: 68svh; margin: 0; overflow: hidden; background: #d8bd94; }
+.ramen-figure { position: relative; z-index: 0; grid-area: visual; width: 100%; height: 100%; min-height: 0; margin: 0; overflow: hidden; background: #d8bd94; }
 .ramen-figure::before { content: ""; position: absolute; z-index: 0; inset: -10px; background: #d8bd94 var(--lqip-image) center / cover no-repeat; filter: blur(8px) saturate(0.82); transform: scale(1.025); opacity: 1; transition: opacity 180ms ease-out; }
 .ramen-figure.is-ready::before { opacity: 0; }
 .ramen-frame-buffer { position: absolute; z-index: 1; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: var(--desktop-focus, 50% 53%); visibility: hidden; user-select: none; pointer-events: none; opacity: 1; clip-path: inset(0); filter: saturate(0.88) contrast(0.98); backface-visibility: hidden; }
@@ -110,14 +119,17 @@ button, a { color: inherit; }
 .scene-tone { position: absolute; z-index: 4; inset: 0; pointer-events: none; opacity: 0.55; background: linear-gradient(90deg, rgba(246, 240, 229, 0.1), transparent 29%), linear-gradient(180deg, rgba(246, 240, 229, 0.16), transparent 23% 73%, rgba(67, 52, 37, 0.08)); }
 
 .thought-bubble {
-  position: absolute;
+  position: relative;
   z-index: 10;
-  top: calc(68svh - 22px);
-  left: 0;
+  grid-area: card;
   width: 100%;
   min-width: 0;
-  height: calc(32svh + 22px);
-  padding: 25px 5vw 80px;
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 20px 5vw 12px;
+  overflow: hidden;
   border: 1px solid rgba(82, 63, 42, 0.18);
   border-bottom: 0;
   border-radius: 32px 32px 0 0;
@@ -126,10 +138,10 @@ button, a { color: inherit; }
 }
 
 .thought-bubble::after { display: none; }
-.thought-layer { width: min(90vw, 900px); margin: 0 auto; animation: thought-fade-in 140ms ease-out both; }
+.thought-layer { width: min(90vw, 1100px); margin: 0 auto; animation: thought-fade-in 140ms ease-out both; }
 .bubble-heading { display: flex; align-items: center; justify-content: space-between; gap: 24px; }
 .bubble-kicker { color: var(--vermilion); font: 700 9px/1 var(--font-geist-mono), monospace; letter-spacing: 0.2em; }
-.thought-layer p { max-width: 850px; margin: 14px 0 0; color: #3c342c; font: 500 clamp(13px, 1.05vw, 16px)/1.78 "Yu Mincho", "Hiragino Mincho ProN", serif; letter-spacing: 0.035em; text-align: justify; text-justify: inter-ideograph; }
+.thought-layer p { margin: 12px 0 0; color: #3c342c; font: 500 clamp(12.5px, 1vw, 15px)/1.65 "Yu Mincho", "Hiragino Mincho ProN", serif; letter-spacing: 0.035em; text-align: justify; text-justify: inter-ideograph; }
 
 .swipe-cue { display: inline-flex; align-items: center; gap: 10px; color: var(--muted); font: 500 8px/1 var(--font-geist-mono), monospace; letter-spacing: 0.16em; white-space: nowrap; }
 .swipe-cue i { position: relative; display: block; width: 38px; height: 12px; }
@@ -139,20 +151,17 @@ button, a { color: inherit; }
 .swipe-cue i b { position: absolute; top: 5px; left: 7px; width: 4px; height: 4px; border-radius: 50%; background: var(--vermilion); animation: swipe-cue 1.65s ease-in-out infinite alternate; }
 
 .body-status {
-  position: absolute;
-  z-index: 10;
-  left: 50%;
-  bottom: 14px;
-  width: min(90vw, 900px);
+  position: relative;
+  width: min(90vw, 1100px);
   min-width: 0;
-  padding: 12px 8px 10px;
+  margin: auto auto 0;
+  padding: 9px 8px 7px;
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 13px;
   border-top: 1px solid rgba(67, 52, 37, 0.28);
   border-bottom: 1px solid rgba(67, 52, 37, 0.18);
   background: rgba(247, 242, 232, 0.72);
-  transform: translateX(-50%);
 }
 
 .status-metric { min-width: 0; }
@@ -184,28 +193,25 @@ button, a { color: inherit; }
 @keyframes seam-reverse { from { left: 0; } to { left: 100%; } }
 
 @media (max-width: 640px) {
-  .tasting-stage { background: var(--washi); }
-  .site-header { height: 58px; padding: 0 16px; column-gap: 8px; background: linear-gradient(180deg, rgba(247, 242, 232, 0.9), rgba(247, 242, 232, 0.45)); }
+  .tasting-stage { grid-template-rows: 58px minmax(0, 1fr) clamp(250px, 38svh, 330px); background: var(--washi); }
+  .site-header { height: auto; padding: 0 16px; column-gap: 8px; background: linear-gradient(180deg, rgba(247, 242, 232, 0.96), rgba(247, 242, 232, 0.88)); }
   .brand { font-size: 13px; }
   .brand-mark { width: 27px; }
   .dish-counter { font-size: 8px; }
   .transition-switch { height: 22px; padding-inline: 6px; gap: 5px; }
   .transition-switch button { font-size: 7px; letter-spacing: 0.08em; }
-  .dish-heading { top: 77px; left: 50%; }
+  .dish-heading { top: 16px; }
   .dish-heading p { font-size: 8px; }
   .dish-heading h1 { font-size: 25px; }
-  .ramen-figure { bottom: auto; height: 63svh; }
   .ramen-frame-buffer { object-position: var(--mobile-focus, 65% 50%); }
   .scene-tone { background: linear-gradient(180deg, rgba(246, 240, 229, 0.12), transparent 45%, rgba(242, 236, 223, 0.38)); }
 
   .thought-bubble {
-    top: calc(63svh - 18px);
-    left: 0;
     width: 100%;
     min-width: 0;
-    height: calc(37svh + 18px);
+    height: 100%;
     min-height: 0;
-    padding: 19px 22px 74px;
+    padding: 17px 22px 9px;
     border: 0;
     border-top: 1px solid rgba(82, 63, 42, 0.18);
     border-radius: 24px 24px 0 0;
@@ -218,7 +224,7 @@ button, a { color: inherit; }
   .thought-layer p { margin-top: 11px; font-size: 12.5px; line-height: 1.62; letter-spacing: 0.025em; }
   .swipe-cue { gap: 7px; font-size: 7px; }
   .swipe-cue i { width: 33px; }
-  .body-status { left: 18px; right: 18px; bottom: 10px; width: auto; min-width: 0; padding: 10px 5px 8px; gap: 12px; background: rgba(247, 242, 232, 0.86); transform: none; }
+  .body-status { width: 100%; min-width: 0; padding: 8px 5px 6px; gap: 12px; background: rgba(247, 242, 232, 0.86); }
   .aftertaste { padding-inline: 24px; }
   .aftertaste h2 { font-size: clamp(36px, 11vw, 48px); }
   .aftertaste-copy { margin-top: 28px; }

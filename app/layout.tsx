@@ -4,7 +4,7 @@ import './globals.css';
 
 const siteUrl = (
   process.env.NEXT_PUBLIC_SITE_URL ??
-  'https://shomi-tonkotsu-ramen.zhuby933.chatgpt.site'
+  'https://kie70.github.io/shomi-tonkotsu-ramen'
 ).replace(/\/$/, '');
 
 const geistSans = Geist({

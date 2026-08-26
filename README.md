@@ -6,9 +6,7 @@
 
 ## 在线体验
 
-[打开赏味豚骨拉面](https://shomi-tonkotsu-ramen.zhuby933.chatgpt.site/?transition=shoji#top)（当前为私有站点）
-
-[GitHub Pages 公开体验](https://kie70.github.io/shomi-tonkotsu-ramen/?transition=shoji#top)
+[打开 GitHub Pages 公开体验](https://kie70.github.io/shomi-tonkotsu-ramen/?transition=shoji#top)
 
 可通过地址参数直接体验两套帧切换方式：
 
@@ -42,14 +40,13 @@ npm run dev
 ```bash
 npm run lint
 npm run build
-npm run start
 ```
 
 ## 项目结构
 
 ```text
 app/
-  page.tsx       页面内容、十五帧数据与滚动交互
+  page.tsx       页面内容、十五帧数据与横向交互
   globals.css    场景布局、气泡、状态栏与切换动效
   layout.tsx     页面元数据与全局布局
 public/
@@ -61,10 +58,9 @@ public/
 
 - React 19
 - Next.js 16
-- Vinext
 - TypeScript
 - CSS 动画与响应式布局
 
 ## 设计方向
 
-界面以干净、安静的日式木屋为视觉基调。图片主体集中在画面右侧，左侧保留和纸气泡的阅读空间；动效追求克制和连贯，让文字与食物变化共同承担“品尝”的叙事。
+界面以干净、安静的日式木屋为视觉基调。顶栏、图片和和纸卡片各自占据独立区域，图片不被界面栏位遮挡；动效追求克制和连贯，让文字与食物变化共同承担“品尝”的叙事。

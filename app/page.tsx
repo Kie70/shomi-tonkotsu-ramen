@@ -483,12 +483,10 @@ export default function Home() {
             <p className="dish-counter"><span>第一席</span> / 豚骨</p>
           </header>
 
-          <div className={`dish-heading ${activeFrameIndex === 0 ? 'is-dish' : 'is-course'}`} aria-hidden={showAftertaste}>
-            {activeFrameIndex === 0 ? (
-              <><h1 id="dish-title">豚骨拉面</h1><span lang="ja">とんこつラーメン</span></>
-            ) : (
-              <p>第一席 · 温暖的浓汤</p>
-            )}
+          <div className="dish-heading" aria-hidden={showAftertaste}>
+            <p>第一席 · 温暖的浓汤</p>
+            <h1 id="dish-title">豚骨拉面</h1>
+            <span lang="ja">とんこつラーメン</span>
           </div>
 
           <figure className="ramen-figure" aria-label={active.alt} aria-hidden={showAftertaste} ref={figureRef} style={figureStyle} data-active-frame={active.id} data-transition-mode={transitionMode}>
@@ -523,9 +521,8 @@ export default function Home() {
               <p>{active.copy}</p>
             </div>
             <span className="sr-only" aria-live="polite">{active.copy}</span>
+            <BodyStatus frame={active} />
           </aside>
-
-          <div aria-hidden={showAftertaste}><BodyStatus frame={active} /></div>
 
           {showAftertaste && (
             <section className="aftertaste" aria-labelledby="aftertaste-title">
