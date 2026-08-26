@@ -507,7 +507,6 @@ export default function Home() {
               />
             ))}
             <div className="frame-seam" ref={seamRef} aria-hidden="true" />
-            <div className="scene-tone" />
           </figure>
 
           <aside className="thought-bubble" aria-label="食客此刻的感受" aria-hidden={showAftertaste}>
