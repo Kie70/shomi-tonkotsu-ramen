@@ -13,8 +13,21 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: '赏味 SHŌMI｜把一道菜，慢慢尝明白',
-  description: '通过一段图片与文字交织的滚动旅程，感受日式豚骨拉面从第一口到最后一口的味道。',
+  metadataBase: new URL('https://shomi-tonkotsu-ramen.zhuby933.chatgpt.site'),
+  title: '赏味 SHŌMI｜豚骨拉面',
+  description: '从第一束面、溏心蛋到叉烧，以十五帧图文赏味一碗日式豚骨拉面。',
+  openGraph: {
+    title: '赏味 SHŌMI｜豚骨拉面',
+    description: '一碗豚骨拉面，从热气升起到余味停留。',
+    images: [{ url: '/og.png', width: 1200, height: 630, alt: 'SHŌMI 豚骨拉面' }],
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: '赏味 SHŌMI｜豚骨拉面',
+    description: '一碗豚骨拉面，从热气升起到余味停留。',
+    images: ['/og.png'],
+  },
 };
 
 export default function RootLayout({
