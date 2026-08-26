@@ -1,6 +1,6 @@
 'use client';
 
-import { CSSProperties, useEffect, useMemo, useRef, useState } from 'react';
+import { CSSProperties, useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 
 type FrameKind = 'wide' | 'action' | 'close';
@@ -99,24 +99,13 @@ const frames: TastingFrame[] = [
 ];
 
 const clamp01 = (value: number) => Math.min(1, Math.max(0, value));
-const smoothstep = (value: number) => {
-  const x = clamp01(value);
-  return x * x * (3 - 2 * x);
-};
 
 export default function Home() {
   const trackRef = useRef<HTMLDivElement>(null);
-  const [loaded, setLoaded] = useState<Set<number>>(() => new Set([0]));
+  const loadedFramesRef = useRef<Set<number>>(new Set([0]));
+  const requestedFrameRef = useRef(0);
+  const [activeFrameIndex, setActiveFrameIndex] = useState(0);
   const [progress, setProgress] = useState(0);
-  const [reducedMotion, setReducedMotion] = useState(false);
-
-  useEffect(() => {
-    const media = window.matchMedia('(prefers-reduced-motion: reduce)');
-    const updateMotion = () => setReducedMotion(media.matches);
-    updateMotion();
-    media.addEventListener('change', updateMotion);
-    return () => media.removeEventListener('change', updateMotion);
-  }, []);
 
   useEffect(() => {
     let animationFrame = 0;
@@ -124,7 +113,11 @@ export default function Home() {
       if (!trackRef.current) return;
       const rect = trackRef.current.getBoundingClientRect();
       const total = trackRef.current.offsetHeight - window.innerHeight;
-      setProgress(clamp01(-rect.top / Math.max(total, 1)));
+      const nextProgress = clamp01(-rect.top / Math.max(total, 1));
+      const requestedFrame = Math.round(nextProgress * (frames.length - 1));
+      requestedFrameRef.current = requestedFrame;
+      setProgress(nextProgress);
+      if (loadedFramesRef.current.has(requestedFrame)) setActiveFrameIndex(requestedFrame);
     };
     const onScroll = () => {
       cancelAnimationFrame(animationFrame);
@@ -143,7 +136,7 @@ export default function Home() {
   useEffect(() => {
     let cancelled = false;
     let idleId = 0;
-    const known = new Set<number>([0]);
+    const known = loadedFramesRef.current;
     const load = (index: number) => {
       if (known.has(index)) return;
       const image = new window.Image();
@@ -152,7 +145,7 @@ export default function Home() {
       image.onload = () => {
         if (cancelled) return;
         known.add(index);
-        setLoaded(new Set(known));
+        if (requestedFrameRef.current === index) setActiveFrameIndex(index);
       };
     };
     [1, 2, 3].forEach(load);
@@ -177,80 +170,42 @@ export default function Home() {
     };
   }, []);
 
-  const scene = useMemo(() => {
-    const raw = progress * (frames.length - 1);
-    const base = Math.min(frames.length - 1, Math.floor(raw));
-    const next = Math.min(frames.length - 1, base + 1);
-    const local = raw - base;
-    const fluidBlend = smoothstep((local - 0.18) / 0.64);
-    const blend = reducedMotion ? (local >= 0.5 ? 1 : 0) : fluidBlend;
-    let from = base;
-    while (from > 0 && !loaded.has(from)) from -= 1;
-    const canAdvance = loaded.has(base) && loaded.has(next);
-    const to = canAdvance ? next : from;
-    const visibleBlend = canAdvance ? blend : 0;
-    const active = visibleBlend >= 0.5 ? to : from;
-    return { from, to, blend: visibleBlend, active };
-  }, [progress, reducedMotion, loaded]);
-
-  const current = frames[scene.from];
-  const upcoming = frames[scene.to];
-  const active = frames[scene.active];
-  const bodyFrame = frames[scene.blend >= 0.92 ? scene.to : scene.from];
-  const headerFade = clamp01((progress - 0.02) / 0.04);
-  const isCloseTransition = upcoming.kind === 'close';
+  const active = frames[activeFrameIndex];
   const trackStyle = { '--track-height': `${100 + (frames.length - 1) * 65}svh` } as CSSProperties;
-  const currentStyle = {
-    '--desktop-focus': current.desktopFocus,
-    '--mobile-focus': current.mobileFocus,
-    opacity: 1 - scene.blend,
-    transform: `scale(${1 + scene.blend * 0.012})`,
-    filter: isCloseTransition ? `blur(${scene.blend * 1.2}px)` : undefined,
-  } as CSSProperties;
-  const upcomingStyle = {
-    '--desktop-focus': upcoming.desktopFocus,
-    '--mobile-focus': upcoming.mobileFocus,
-    opacity: scene.blend,
-    transform: `scale(${isCloseTransition ? 1.025 - scene.blend * 0.025 : 1})`,
+  const frameStyle = {
+    '--desktop-focus': active.desktopFocus,
+    '--mobile-focus': active.mobileFocus,
   } as CSSProperties;
 
   return (
     <main className="tasting-page">
       <div className="scroll-track" ref={trackRef} id="top" style={trackStyle}>
         <section className="tasting-stage" aria-labelledby="dish-title">
-          <header className="site-header" style={{ opacity: 1 - headerFade, pointerEvents: headerFade > 0.95 ? 'none' : 'auto' }}>
+          <header className="site-header">
             <a className="brand" href="#top" aria-label="赏味首页">
               <span className="brand-mark">味</span><span>赏味</span><small>SHŌMI</small>
             </a>
             <p className="dish-counter"><span>第一席</span> / 豚骨</p>
           </header>
 
-          <div className="dish-heading" style={{ opacity: 1 - headerFade, transform: `translate(-50%, ${headerFade * -10}px)` }}>
+          <div className="dish-heading">
             <p>第一席 · 温暖的浓汤</p><h1 id="dish-title">豚骨拉面</h1><span lang="ja">とんこつラーメン</span>
           </div>
 
           <figure className="ramen-figure" aria-label={active.alt}>
-            <Image className="ramen-frame current" src={current.image} alt="" aria-hidden="true" draggable="false" style={currentStyle} fill sizes="100vw" priority={scene.from === 0} unoptimized />
-            {scene.to !== scene.from && (
-              <Image className="ramen-frame upcoming" src={upcoming.image} alt="" aria-hidden="true" draggable="false" style={upcomingStyle} fill sizes="100vw" unoptimized />
-            )}
+            <Image key={active.id} className="ramen-frame" src={active.image} alt="" aria-hidden="true" draggable="false" style={frameStyle} fill sizes="100vw" priority={activeFrameIndex === 0} unoptimized />
             <div className="scene-tone" />
           </figure>
 
           <aside className="thought-bubble" aria-label="食客此刻的感受">
-            <div className="thought-layer" style={{ opacity: 1 - scene.blend }}>
-              <span className="bubble-kicker">{current.kicker}</span><p>{current.copy}</p>
+            <div className="thought-layer" key={active.id}>
+              <span className="bubble-kicker">{active.kicker}</span><p>{active.copy}</p>
             </div>
-            {scene.to !== scene.from && (
-              <div className="thought-layer" style={{ opacity: scene.blend }}>
-                <span className="bubble-kicker">{upcoming.kicker}</span><p>{upcoming.copy}</p>
-              </div>
-            )}
             {progress < 0.012 && <span className="scroll-cue" aria-hidden="true"><i />向下赏味</span>}
             <span className="sr-only" aria-live="polite">{active.copy}</span>
           </aside>
 
-          <BodyStatus frame={bodyFrame} />
+          <BodyStatus frame={active} />
         </section>
       </div>
 

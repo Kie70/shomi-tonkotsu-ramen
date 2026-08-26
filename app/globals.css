@@ -47,7 +47,6 @@ button, a { color: inherit; }
   border-bottom: 1px solid rgba(67, 52, 37, 0.14);
   background: linear-gradient(180deg, rgba(247, 242, 232, 0.9), rgba(247, 242, 232, 0.68));
   backdrop-filter: blur(12px);
-  transition: opacity 120ms linear;
 }
 
 .brand {
@@ -66,15 +65,14 @@ button, a { color: inherit; }
 .dish-counter { margin: 0; color: var(--muted); font: 500 9px/1 var(--font-geist-mono), monospace; letter-spacing: 0.2em; }
 .dish-counter span { color: var(--vermilion); }
 
-.dish-heading { position: absolute; z-index: 8; top: 98px; left: 52%; width: max-content; text-align: center; transition: opacity 120ms linear, transform 120ms linear; }
+.dish-heading { position: absolute; z-index: 8; top: 98px; left: 52%; width: max-content; text-align: center; transform: translateX(-50%); }
 .dish-heading p { margin: 0 0 7px; color: var(--vermilion); font: 600 9px/1 var(--font-geist-mono), monospace; letter-spacing: 0.25em; }
 .dish-heading h1 { margin: 0; font: 500 clamp(26px, 2.5vw, 40px)/1.08 "Yu Mincho", "Hiragino Mincho ProN", serif; letter-spacing: 0.2em; }
 .dish-heading span { display: block; margin-top: 7px; color: rgba(48, 42, 36, 0.65); font: 500 9px/1 serif; letter-spacing: 0.18em; }
 
 .ramen-figure { position: absolute; z-index: -1; inset: 0; margin: 0; overflow: hidden; background: #d8bd94; }
-.ramen-frame { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: var(--desktop-focus, 50% 53%); user-select: none; will-change: opacity, transform, filter; filter: saturate(0.88) contrast(0.98); }
-.ramen-frame.upcoming { z-index: 2; }
-.scene-tone { position: absolute; z-index: 3; inset: 0; pointer-events: none; background: linear-gradient(90deg, rgba(246, 240, 229, 0.1), transparent 29%), linear-gradient(180deg, rgba(246, 240, 229, 0.16), transparent 23% 73%, rgba(67, 52, 37, 0.08)); mix-blend-mode: soft-light; }
+.ramen-frame { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: var(--desktop-focus, 50% 53%); user-select: none; filter: saturate(0.88) contrast(0.98); }
+.scene-tone { position: absolute; z-index: 3; inset: 0; pointer-events: none; opacity: 0.55; background: linear-gradient(90deg, rgba(246, 240, 229, 0.1), transparent 29%), linear-gradient(180deg, rgba(246, 240, 229, 0.16), transparent 23% 73%, rgba(67, 52, 37, 0.08)); }
 
 .thought-bubble {
   position: absolute;
@@ -94,7 +92,7 @@ button, a { color: inherit; }
 }
 
 .thought-bubble::after { content: ""; position: absolute; right: -11px; bottom: 51px; width: 20px; height: 20px; background: rgba(248, 242, 231, 0.9); border-top: 1px solid rgba(82, 63, 42, 0.22); border-right: 1px solid rgba(82, 63, 42, 0.22); transform: rotate(45deg); }
-.thought-layer { grid-area: 1 / 1; align-self: start; transition: opacity 80ms linear; }
+.thought-layer { grid-area: 1 / 1; align-self: start; animation: thought-fade-in 140ms ease-out both; }
 .bubble-kicker { color: var(--vermilion); font: 700 9px/1 var(--font-geist-mono), monospace; letter-spacing: 0.2em; }
 .thought-layer p { margin: 14px 0 0; color: #3c342c; font: 500 clamp(12.5px, 0.92vw, 14px)/1.82 "Yu Mincho", "Hiragino Mincho ProN", serif; letter-spacing: 0.035em; text-align: justify; text-justify: inter-ideograph; }
 
@@ -137,6 +135,7 @@ button, a { color: inherit; }
 .taste-again span { margin-left: 8px; color: #d58a71; }
 
 @keyframes scroll-cue { 0%, 100% { opacity: 0.2; transform: translate(-50%, 0); } 50% { opacity: 1; transform: translate(-50%, 8px); } }
+@keyframes thought-fade-in { from { opacity: 0; } to { opacity: 1; } }
 
 @media (max-width: 1100px) and (min-width: 641px) {
   .thought-bubble, .body-status { left: 28px; width: 250px; min-width: 250px; }
