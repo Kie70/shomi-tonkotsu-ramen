@@ -1,7 +1,8 @@
 'use client';
 
+/* eslint-disable @next/next/no-img-element */
+
 import { CSSProperties, useEffect, useRef, useState } from 'react';
-import Image from 'next/image';
 
 type FrameKind = 'wide' | 'action' | 'close';
 type BodyState = { fullness: number; warmth: number; thirst: number };
@@ -16,6 +17,18 @@ type TastingFrame = {
   state: BodyState;
   desktopFocus: string;
   mobileFocus: string;
+};
+
+type TransitionMode = 'shoji' | 'washi';
+type FrameSlot = { frameIndex: number | null; ready: boolean; loading: boolean; token: number };
+type RunningTransition = {
+  token: number;
+  fromSlot: number;
+  toSlot: number;
+  fromIndex: number;
+  toIndex: number;
+  finish: () => void;
+  timer: number;
 };
 
 const state = (fullness: number, warmth: number, thirst: number): BodyState => ({ fullness, warmth, thirst });
@@ -102,80 +115,299 @@ const clamp01 = (value: number) => Math.min(1, Math.max(0, value));
 
 export default function Home() {
   const trackRef = useRef<HTMLDivElement>(null);
-  const loadedFramesRef = useRef<Set<number>>(new Set([0]));
-  const requestedFrameRef = useRef(0);
+  const figureRef = useRef<HTMLElement>(null);
+  const frameRefs = useRef<Array<HTMLImageElement | null>>([]);
+  const seamRef = useRef<HTMLDivElement>(null);
+  const transitionModeRef = useRef<TransitionMode>('shoji');
   const [activeFrameIndex, setActiveFrameIndex] = useState(0);
   const [progress, setProgress] = useState(0);
+  const [transitionMode, setTransitionMode] = useState<TransitionMode>('shoji');
 
   useEffect(() => {
+    const readMode = () => {
+      const value = new URLSearchParams(window.location.search).get('transition');
+      const mode: TransitionMode = value === 'washi' ? 'washi' : 'shoji';
+      transitionModeRef.current = mode;
+      setTransitionMode(mode);
+    };
+    readMode();
+    window.addEventListener('popstate', readMode);
+    return () => window.removeEventListener('popstate', readMode);
+  }, []);
+
+  useEffect(() => {
+    const images = frameRefs.current;
+    const figure = figureRef.current;
+    const seam = seamRef.current;
+    const track = trackRef.current;
+    if (images.length !== 3 || images.some((image) => !image) || !figure || !seam || !track) return;
+
+    let destroyed = false;
     let animationFrame = 0;
+    let transitionToken = 0;
+    let currentSlot = 0;
+    let committedIndex = 0;
+    let desiredIndex = 0;
+    let running: RunningTransition | null = null;
+    const slots: FrameSlot[] = [0, 1, 2].map(() => ({ frameIndex: null, ready: false, loading: false, token: 0 }));
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+    const baseClass = 'ramen-frame-buffer';
+    const resetSeam = () => { seam.className = 'frame-seam'; };
+    const setCurrentVisual = (slot: number) => {
+      images.forEach((image, index) => {
+        if (!image) return;
+        image.className = index === slot ? `${baseClass} is-current` : baseClass;
+      });
+      resetSeam();
+    };
+    const applyFrame = (image: HTMLImageElement, index: number) => {
+      image.style.setProperty('--desktop-focus', frames[index].desktopFocus);
+      image.style.setProperty('--mobile-focus', frames[index].mobileFocus);
+      image.dataset.frame = frames[index].id;
+    };
+    const findSlot = (index: number) => slots.findIndex((slot) => slot.frameIndex === index);
+    const sleep = (milliseconds: number) => new Promise((resolve) => window.setTimeout(resolve, milliseconds));
+
+    const pickDisposableSlot = (targetIndex: number) => {
+      const blocked = new Set<number>([currentSlot]);
+      if (running) {
+        blocked.add(running.fromSlot);
+        blocked.add(running.toSlot);
+      }
+      const candidates = slots
+        .map((slot, index) => ({ slot, index }))
+        .filter(({ index }) => !blocked.has(index));
+      candidates.sort((a, b) => {
+        const aDistance = a.slot.frameIndex === null ? Number.POSITIVE_INFINITY : Math.abs(a.slot.frameIndex - targetIndex);
+        const bDistance = b.slot.frameIndex === null ? Number.POSITIVE_INFINITY : Math.abs(b.slot.frameIndex - targetIndex);
+        return bDistance - aDistance;
+      });
+      return candidates[0]?.index ?? -1;
+    };
+
+    const prepareNeighbors = () => {
+      if (destroyed || running) return;
+      const targets = committedIndex === 0
+        ? [1, 2]
+        : committedIndex === frames.length - 1
+          ? [frames.length - 2, frames.length - 3]
+          : [committedIndex - 1, committedIndex + 1];
+      targets.forEach((target) => {
+        if (target >= 0 && target < frames.length && findSlot(target) < 0) assignSlot(target);
+      });
+    };
+
+    const promoteInstantly = (slot: number, index: number) => {
+      transitionToken += 1;
+      if (running) {
+        window.clearTimeout(running.timer);
+        images[running.toSlot]?.removeEventListener('animationend', running.finish);
+      }
+      running = null;
+      currentSlot = slot;
+      committedIndex = index;
+      setCurrentVisual(slot);
+      setActiveFrameIndex(index);
+      if (desiredIndex !== committedIndex) requestFrame(desiredIndex);
+      else prepareNeighbors();
+    };
+
+    const cancelTransition = () => {
+      if (!running) return;
+      transitionToken += 1;
+      window.clearTimeout(running.timer);
+      images[running.toSlot]?.removeEventListener('animationend', running.finish);
+      currentSlot = running.fromSlot;
+      committedIndex = running.fromIndex;
+      running = null;
+      setCurrentVisual(currentSlot);
+      setActiveFrameIndex(committedIndex);
+      prepareNeighbors();
+    };
+
+    const startTransition = (slot: number, index: number) => {
+      if (destroyed || running || index !== desiredIndex || slot === currentSlot || !slots[slot].ready) return;
+      const distance = Math.abs(index - committedIndex);
+      if (reducedMotion.matches || distance > 1) {
+        promoteInstantly(slot, index);
+        return;
+      }
+
+      const fromSlot = currentSlot;
+      const fromIndex = committedIndex;
+      const toImage = images[slot];
+      const fromImage = images[fromSlot];
+      if (!toImage || !fromImage) return;
+      const direction = index > committedIndex ? 'forward' : 'reverse';
+      const mode = transitionModeRef.current;
+      const duration = mode === 'shoji' ? 160 : 220;
+      const token = ++transitionToken;
+      const shared = `${baseClass} is-transitioning transition-${mode} direction-${direction}`;
+
+      fromImage.className = `${shared} is-outgoing`;
+      toImage.className = `${shared} is-incoming`;
+      seam.className = `frame-seam transition-${mode} direction-${direction}`;
+      void toImage.offsetWidth;
+
+      const finish = () => {
+        if (destroyed || !running || running.token !== token) return;
+        window.clearTimeout(running.timer);
+        toImage.removeEventListener('animationend', finish);
+        running = null;
+        currentSlot = slot;
+        committedIndex = index;
+        setCurrentVisual(slot);
+        setActiveFrameIndex(index);
+        if (desiredIndex !== committedIndex) requestFrame(desiredIndex);
+        else prepareNeighbors();
+      };
+
+      toImage.addEventListener('animationend', finish);
+      const timer = window.setTimeout(finish, duration + 120);
+      running = { token, fromSlot, toSlot: slot, fromIndex, toIndex: index, finish, timer };
+      requestAnimationFrame(() => {
+        if (!running || running.token !== token) return;
+        fromImage.classList.add('is-running');
+        toImage.classList.add('is-running');
+        seam.classList.add('is-running');
+      });
+    };
+
+    async function decodeSlot(slotIndex: number, frameIndex: number, token: number) {
+      const image = images[slotIndex];
+      if (!image) return;
+      let decoded = false;
+      for (let attempt = 0; attempt < 2 && !decoded; attempt += 1) {
+        if (attempt === 1) {
+          await sleep(360);
+          if (destroyed || slots[slotIndex].token !== token) return;
+          image.src = `${frames[frameIndex].image}?decode-retry=1`;
+        }
+        try {
+          await image.decode();
+          decoded = true;
+        } catch {
+          decoded = false;
+        }
+      }
+      if (destroyed || slots[slotIndex].token !== token) return;
+      slots[slotIndex].loading = false;
+      slots[slotIndex].ready = decoded;
+      if (!decoded) {
+        slots[slotIndex].frameIndex = null;
+        image.removeAttribute('src');
+        image.className = baseClass;
+        return;
+      }
+      if (frameIndex === 0) figure.classList.add('is-ready');
+      if (frameIndex === desiredIndex && slotIndex !== currentSlot && !running) startTransition(slotIndex, frameIndex);
+      if (slotIndex === currentSlot) prepareNeighbors();
+    }
+
+    function assignSlot(frameIndex: number, preferredSlot?: number) {
+      if (destroyed || frameIndex < 0 || frameIndex >= frames.length) return;
+      const existing = findSlot(frameIndex);
+      if (existing >= 0) {
+        if (slots[existing].ready && frameIndex === desiredIndex && existing !== currentSlot && !running) startTransition(existing, frameIndex);
+        return;
+      }
+      const slotIndex = preferredSlot ?? pickDisposableSlot(frameIndex);
+      if (slotIndex < 0 || slotIndex === currentSlot) return;
+      const image = images[slotIndex];
+      if (!image) return;
+      const token = slots[slotIndex].token + 1;
+      slots[slotIndex] = { frameIndex, ready: false, loading: true, token };
+      image.className = baseClass;
+      applyFrame(image, frameIndex);
+      image.src = frames[frameIndex].image;
+      void decodeSlot(slotIndex, frameIndex, token);
+    }
+
+    function requestFrame(index: number) {
+      desiredIndex = index;
+      if (running) {
+        if (index === running.fromIndex) {
+          cancelTransition();
+          return;
+        }
+        if (index !== running.toIndex) assignSlot(index);
+        return;
+      }
+      if (index === committedIndex) return;
+      const slot = findSlot(index);
+      if (slot >= 0) {
+        if (slots[slot].ready) startTransition(slot, index);
+        else if (!slots[slot].loading) assignSlot(index, slot);
+        return;
+      }
+      assignSlot(index);
+    }
+
+    const prefetchRemaining = async () => {
+      const queue = frames.slice(1).map((frame) => frame.image);
+      let cursor = 0;
+      const worker = async () => {
+        while (!destroyed && cursor < queue.length) {
+          const source = queue[cursor];
+          cursor += 1;
+          try {
+            const response = await fetch(source, { cache: 'force-cache' });
+            if (response.ok) await response.blob();
+          } catch {
+            // The visible buffer performs its own retry when this frame is requested.
+          }
+        }
+      };
+      await Promise.all([worker(), worker(), worker(), worker()]);
+    };
+
     const update = () => {
-      if (!trackRef.current) return;
-      const rect = trackRef.current.getBoundingClientRect();
-      const total = trackRef.current.offsetHeight - window.innerHeight;
+      const rect = track.getBoundingClientRect();
+      const total = track.offsetHeight - window.innerHeight;
       const nextProgress = clamp01(-rect.top / Math.max(total, 1));
       const requestedFrame = Math.round(nextProgress * (frames.length - 1));
-      requestedFrameRef.current = requestedFrame;
       setProgress(nextProgress);
-      if (loadedFramesRef.current.has(requestedFrame)) setActiveFrameIndex(requestedFrame);
+      requestFrame(requestedFrame);
     };
     const onScroll = () => {
       cancelAnimationFrame(animationFrame);
       animationFrame = requestAnimationFrame(update);
     };
+
+    images.forEach((image) => { if (image) image.className = baseClass; });
+    setCurrentVisual(0);
+    slots[0] = { frameIndex: 0, ready: false, loading: true, token: 1 };
+    applyFrame(images[0]!, 0);
+    void decodeSlot(0, 0, 1);
+    assignSlot(1, 1);
+    assignSlot(2, 2);
+    void prefetchRemaining();
     update();
     window.addEventListener('scroll', onScroll, { passive: true });
     window.addEventListener('resize', onScroll);
+
     return () => {
+      destroyed = true;
       cancelAnimationFrame(animationFrame);
+      if (running) {
+        window.clearTimeout(running.timer);
+        images[running.toSlot]?.removeEventListener('animationend', running.finish);
+      }
       window.removeEventListener('scroll', onScroll);
       window.removeEventListener('resize', onScroll);
     };
   }, []);
 
-  useEffect(() => {
-    let cancelled = false;
-    let idleId = 0;
-    const known = loadedFramesRef.current;
-    const load = (index: number) => {
-      if (known.has(index)) return;
-      const image = new window.Image();
-      image.decoding = 'async';
-      image.src = frames[index].image;
-      image.onload = () => {
-        if (cancelled) return;
-        known.add(index);
-        if (requestedFrameRef.current === index) setActiveFrameIndex(index);
-      };
-    };
-    [1, 2, 3].forEach(load);
-    let nextIndex = 4;
-    const runIdle = () => {
-      if (cancelled || nextIndex >= frames.length) return;
-      load(nextIndex);
-      nextIndex += 1;
-      const idleWindow = window as Window & {
-        requestIdleCallback?: (callback: () => void, options?: { timeout: number }) => number;
-      };
-      idleId = idleWindow.requestIdleCallback
-        ? idleWindow.requestIdleCallback(runIdle, { timeout: 800 })
-        : window.setTimeout(runIdle, 120);
-    };
-    runIdle();
-    return () => {
-      cancelled = true;
-      const idleWindow = window as Window & { cancelIdleCallback?: (id: number) => void };
-      if (idleWindow.cancelIdleCallback) idleWindow.cancelIdleCallback(idleId);
-      else window.clearTimeout(idleId);
-    };
-  }, []);
-
   const active = frames[activeFrameIndex];
   const trackStyle = { '--track-height': `${100 + (frames.length - 1) * 65}svh` } as CSSProperties;
-  const frameStyle = {
-    '--desktop-focus': active.desktopFocus,
-    '--mobile-focus': active.mobileFocus,
-  } as CSSProperties;
+  const selectTransitionMode = (mode: TransitionMode) => {
+    transitionModeRef.current = mode;
+    setTransitionMode(mode);
+    const url = new URL(window.location.href);
+    url.searchParams.set('transition', mode);
+    window.history.replaceState(null, '', url);
+  };
 
   return (
     <main className="tasting-page">
@@ -185,6 +417,11 @@ export default function Home() {
             <a className="brand" href="#top" aria-label="赏味首页">
               <span className="brand-mark">味</span><span>赏味</span><small>SHŌMI</small>
             </a>
+            <div className="transition-switch" role="group" aria-label="切换图片动效">
+              <button type="button" aria-pressed={transitionMode === 'shoji'} onClick={() => selectTransitionMode('shoji')}>障子</button>
+              <i aria-hidden="true" />
+              <button type="button" aria-pressed={transitionMode === 'washi'} onClick={() => selectTransitionMode('washi')}>和纸</button>
+            </div>
             <p className="dish-counter"><span>第一席</span> / 豚骨</p>
           </header>
 
@@ -192,8 +429,22 @@ export default function Home() {
             <p>第一席 · 温暖的浓汤</p><h1 id="dish-title">豚骨拉面</h1><span lang="ja">とんこつラーメン</span>
           </div>
 
-          <figure className="ramen-figure" aria-label={active.alt}>
-            <Image key={active.id} className="ramen-frame" src={active.image} alt="" aria-hidden="true" draggable="false" style={frameStyle} fill sizes="100vw" priority={activeFrameIndex === 0} unoptimized />
+          <figure className="ramen-figure" aria-label={active.alt} ref={figureRef} data-active-frame={active.id} data-transition-mode={transitionMode}>
+            {[0, 1, 2].map((slot) => (
+              <img
+                className="ramen-frame-buffer"
+                src={slot === 0 ? frames[0].image : undefined}
+                alt=""
+                aria-hidden="true"
+                draggable="false"
+                decoding="async"
+                fetchPriority={slot === 0 ? 'high' : 'auto'}
+                key={slot}
+                ref={(image) => { frameRefs.current[slot] = image; }}
+                data-buffer-slot={slot}
+              />
+            ))}
+            <div className="frame-seam" ref={seamRef} aria-hidden="true" />
             <div className="scene-tone" />
           </figure>
 

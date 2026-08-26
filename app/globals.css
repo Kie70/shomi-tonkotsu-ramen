@@ -42,7 +42,8 @@ button, a { color: inherit; }
   height: 76px;
   padding: 0 clamp(24px, 4.2vw, 76px);
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: 1fr auto auto;
+  column-gap: clamp(14px, 2vw, 30px);
   align-items: center;
   border-bottom: 1px solid rgba(67, 52, 37, 0.14);
   background: linear-gradient(180deg, rgba(247, 242, 232, 0.9), rgba(247, 242, 232, 0.68));
@@ -65,14 +66,45 @@ button, a { color: inherit; }
 .dish-counter { margin: 0; color: var(--muted); font: 500 9px/1 var(--font-geist-mono), monospace; letter-spacing: 0.2em; }
 .dish-counter span { color: var(--vermilion); }
 
+.transition-switch { height: 24px; padding: 0 8px; display: inline-flex; align-items: center; gap: 7px; border: 1px solid rgba(67, 52, 37, 0.18); border-radius: 999px; background: rgba(251, 247, 238, 0.48); }
+.transition-switch button { padding: 2px 0; border: 0; background: transparent; color: rgba(48, 42, 36, 0.48); cursor: pointer; font: 600 8px/1 var(--font-geist-mono), monospace; letter-spacing: 0.14em; }
+.transition-switch button[aria-pressed="true"] { color: var(--vermilion); }
+.transition-switch button:focus-visible { outline: 1px solid var(--vermilion); outline-offset: 3px; }
+.transition-switch i { width: 1px; height: 10px; background: rgba(67, 52, 37, 0.18); }
+
 .dish-heading { position: absolute; z-index: 8; top: 98px; left: 52%; width: max-content; text-align: center; transform: translateX(-50%); }
 .dish-heading p { margin: 0 0 7px; color: var(--vermilion); font: 600 9px/1 var(--font-geist-mono), monospace; letter-spacing: 0.25em; }
 .dish-heading h1 { margin: 0; font: 500 clamp(26px, 2.5vw, 40px)/1.08 "Yu Mincho", "Hiragino Mincho ProN", serif; letter-spacing: 0.2em; }
 .dish-heading span { display: block; margin-top: 7px; color: rgba(48, 42, 36, 0.65); font: 500 9px/1 serif; letter-spacing: 0.18em; }
 
 .ramen-figure { position: absolute; z-index: -1; inset: 0; margin: 0; overflow: hidden; background: #d8bd94; }
-.ramen-frame { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: var(--desktop-focus, 50% 53%); user-select: none; filter: saturate(0.88) contrast(0.98); }
-.scene-tone { position: absolute; z-index: 3; inset: 0; pointer-events: none; opacity: 0.55; background: linear-gradient(90deg, rgba(246, 240, 229, 0.1), transparent 29%), linear-gradient(180deg, rgba(246, 240, 229, 0.16), transparent 23% 73%, rgba(67, 52, 37, 0.08)); }
+.ramen-figure::before { content: ""; position: absolute; z-index: 0; inset: -10px; background: #d8bd94 url('/images/ramen-100-lqip.webp') center / cover no-repeat; filter: blur(8px) saturate(0.82); transform: scale(1.025); opacity: 1; transition: opacity 180ms ease-out; }
+.ramen-figure.is-ready::before { opacity: 0; }
+.ramen-frame-buffer { position: absolute; z-index: 1; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: var(--desktop-focus, 50% 53%); visibility: hidden; user-select: none; pointer-events: none; opacity: 1; clip-path: inset(0); filter: saturate(0.88) contrast(0.98); backface-visibility: hidden; }
+.ramen-frame-buffer.is-current { z-index: 1; visibility: visible; clip-path: inset(0); }
+.ramen-frame-buffer.is-transitioning { visibility: visible; }
+.ramen-frame-buffer.is-outgoing { z-index: 1; }
+.ramen-frame-buffer.is-incoming { z-index: 2; }
+
+.ramen-frame-buffer.transition-shoji.direction-forward.is-incoming,
+.ramen-frame-buffer.transition-washi.direction-forward.is-incoming { clip-path: inset(0 0 0 100%); }
+.ramen-frame-buffer.transition-shoji.direction-reverse.is-incoming,
+.ramen-frame-buffer.transition-washi.direction-reverse.is-incoming { clip-path: inset(0 100% 0 0); }
+.ramen-frame-buffer.transition-shoji.direction-forward.is-running.is-incoming { animation: shoji-in-forward 160ms cubic-bezier(0.45, 0, 0.2, 1) both; }
+.ramen-frame-buffer.transition-shoji.direction-forward.is-running.is-outgoing { animation: shoji-out-forward 160ms cubic-bezier(0.45, 0, 0.2, 1) both; }
+.ramen-frame-buffer.transition-shoji.direction-reverse.is-running.is-incoming { animation: shoji-in-reverse 160ms cubic-bezier(0.45, 0, 0.2, 1) both; }
+.ramen-frame-buffer.transition-shoji.direction-reverse.is-running.is-outgoing { animation: shoji-out-reverse 160ms cubic-bezier(0.45, 0, 0.2, 1) both; }
+.ramen-frame-buffer.transition-washi.direction-forward.is-running.is-incoming { animation: washi-in-forward 220ms cubic-bezier(0.45, 0, 0.2, 1) both; }
+.ramen-frame-buffer.transition-washi.direction-reverse.is-running.is-incoming { animation: washi-in-reverse 220ms cubic-bezier(0.45, 0, 0.2, 1) both; }
+
+.frame-seam { position: absolute; z-index: 3; top: 0; bottom: 0; left: 0; visibility: hidden; pointer-events: none; }
+.frame-seam.transition-shoji { width: 2px; visibility: visible; background: rgba(100, 71, 47, 0.72); box-shadow: -8px 0 18px rgba(73, 49, 30, 0.12), 8px 0 18px rgba(255, 248, 232, 0.12); }
+.frame-seam.transition-washi { width: 36px; visibility: visible; border-inline: 1px solid rgba(109, 82, 55, 0.16); background: linear-gradient(90deg, rgba(244, 237, 222, 0.68), rgba(255, 252, 242, 0.9) 46%, rgba(221, 207, 183, 0.62)), repeating-linear-gradient(95deg, transparent 0 5px, rgba(91, 69, 44, 0.055) 6px); box-shadow: -17px 0 28px rgba(61, 42, 27, 0.16), 10px 0 22px rgba(255, 250, 237, 0.14); transform: translateX(-50%) perspective(160px) rotateY(-7deg); transform-origin: center; }
+.frame-seam.transition-washi.direction-reverse { transform: translateX(-50%) perspective(160px) rotateY(7deg); }
+.frame-seam.direction-forward.is-running { animation: seam-forward var(--seam-duration, 160ms) cubic-bezier(0.45, 0, 0.2, 1) both; }
+.frame-seam.direction-reverse.is-running { animation: seam-reverse var(--seam-duration, 160ms) cubic-bezier(0.45, 0, 0.2, 1) both; }
+.frame-seam.transition-washi { --seam-duration: 220ms; }
+.scene-tone { position: absolute; z-index: 4; inset: 0; pointer-events: none; opacity: 0.55; background: linear-gradient(90deg, rgba(246, 240, 229, 0.1), transparent 29%), linear-gradient(180deg, rgba(246, 240, 229, 0.16), transparent 23% 73%, rgba(67, 52, 37, 0.08)); }
 
 .thought-bubble {
   position: absolute;
@@ -136,6 +168,14 @@ button, a { color: inherit; }
 
 @keyframes scroll-cue { 0%, 100% { opacity: 0.2; transform: translate(-50%, 0); } 50% { opacity: 1; transform: translate(-50%, 8px); } }
 @keyframes thought-fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes shoji-in-forward { from { clip-path: inset(0 0 0 100%); } to { clip-path: inset(0); } }
+@keyframes shoji-out-forward { from { clip-path: inset(0); } to { clip-path: inset(0 100% 0 0); } }
+@keyframes shoji-in-reverse { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0); } }
+@keyframes shoji-out-reverse { from { clip-path: inset(0); } to { clip-path: inset(0 0 0 100%); } }
+@keyframes washi-in-forward { from { clip-path: inset(0 0 0 100%); } to { clip-path: inset(0); } }
+@keyframes washi-in-reverse { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0); } }
+@keyframes seam-forward { from { left: 100%; } to { left: 0; } }
+@keyframes seam-reverse { from { left: 0; } to { left: 100%; } }
 
 @media (max-width: 1100px) and (min-width: 641px) {
   .thought-bubble, .body-status { left: 28px; width: 250px; min-width: 250px; }
@@ -145,15 +185,17 @@ button, a { color: inherit; }
 
 @media (max-width: 640px) {
   .tasting-stage { background: var(--washi); }
-  .site-header { height: 58px; padding: 0 16px; background: linear-gradient(180deg, rgba(247, 242, 232, 0.9), rgba(247, 242, 232, 0.45)); }
+  .site-header { height: 58px; padding: 0 16px; column-gap: 8px; background: linear-gradient(180deg, rgba(247, 242, 232, 0.9), rgba(247, 242, 232, 0.45)); }
   .brand { font-size: 13px; }
   .brand-mark { width: 27px; }
   .dish-counter { font-size: 8px; }
+  .transition-switch { height: 22px; padding-inline: 6px; gap: 5px; }
+  .transition-switch button { font-size: 7px; letter-spacing: 0.08em; }
   .dish-heading { top: 74px; left: 50%; }
   .dish-heading p { font-size: 8px; }
   .dish-heading h1 { font-size: 25px; }
   .ramen-figure { bottom: auto; height: 58svh; }
-  .ramen-frame { object-position: var(--mobile-focus, 65% 50%); }
+  .ramen-frame-buffer { object-position: var(--mobile-focus, 65% 50%); }
   .scene-tone { background: linear-gradient(180deg, rgba(246, 240, 229, 0.12), transparent 45%, rgba(242, 236, 223, 0.38)); }
 
   .thought-bubble {
