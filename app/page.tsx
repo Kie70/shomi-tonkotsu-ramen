@@ -419,7 +419,11 @@ export default function Home() {
   }, []);
 
   const active = frames[activeFrameIndex];
-  const figureStyle = { '--lqip-image': `url("${assetPath('/images/ramen-100-lqip.webp')}")` } as CSSProperties;
+  const figureStyle = {
+    '--lqip-image': `url("${assetPath('/images/ramen-100-lqip.webp')}")`,
+    '--frame-backdrop-desktop': `url("${active.image}")`,
+    '--frame-backdrop-mobile': `url("${active.mobileImage}")`,
+  } as CSSProperties;
   const selectTransitionMode = (mode: TransitionMode) => {
     transitionModeRef.current = mode;
     setTransitionMode(mode);
