@@ -8,8 +8,8 @@
 }
 
 * { box-sizing: border-box; }
-html { scroll-behavior: smooth; overflow: hidden; }
-body { margin: 0; overflow: hidden; overscroll-behavior: none; background: var(--washi); color: var(--ink); }
+html { scroll-behavior: smooth; overflow-x: hidden; }
+body { margin: 0; overflow-x: hidden; overscroll-behavior-x: none; background: var(--washi); color: var(--ink); }
 button, a { color: inherit; }
 
 .sr-only {
@@ -25,21 +25,21 @@ button, a { color: inherit; }
 }
 
 .tasting-page {
-  height: 100svh;
   min-height: 100svh;
-  overflow: hidden;
+  overflow-x: hidden;
   font-family: var(--font-geist-sans), "Yu Gothic", sans-serif;
   background: var(--washi);
 }
 
-.scroll-track { height: 100svh; }
+.scroll-track { min-height: 100svh; }
 .tasting-stage {
   position: relative;
-  height: 100svh;
+  min-height: 100svh;
   display: grid;
-  grid-template-rows: 76px minmax(0, 1fr) clamp(190px, 22svh, 230px);
+  grid-template-rows: 76px auto clamp(190px, 22svh, 230px);
   grid-template-areas: "header" "visual" "card";
-  overflow: hidden;
+  align-content: start;
+  overflow-x: hidden;
   isolation: isolate;
   outline: none;
   touch-action: pan-y;
@@ -89,7 +89,7 @@ button, a { color: inherit; }
 .dish-heading h1 { margin: 0; font: 500 clamp(26px, 2.5vw, 40px)/1.08 "Yu Mincho", "Hiragino Mincho ProN", serif; letter-spacing: 0.2em; }
 .dish-heading span { display: block; margin-top: 7px; color: rgba(48, 42, 36, 0.65); font: 500 9px/1 serif; letter-spacing: 0.18em; }
 
-.ramen-figure { position: relative; z-index: 0; grid-area: visual; width: 100%; height: 100%; min-height: 0; margin: 0; overflow: hidden; background: #d8bd94; }
+.ramen-figure { position: relative; z-index: 0; grid-area: visual; width: 100%; height: auto; aspect-ratio: 3 / 2; min-height: 0; margin: 0; overflow: hidden; background: #d8bd94; }
 .ramen-figure::before { content: ""; position: absolute; z-index: 0; inset: -10px; background: #d8bd94 var(--lqip-image) center / cover no-repeat; filter: blur(8px) saturate(0.82); transform: scale(1.025); opacity: 1; transition: opacity 180ms ease-out; }
 .ramen-figure.is-ready::before { opacity: 0; }
 .ramen-frame-buffer { position: absolute; z-index: 1; inset: 0; width: 100%; height: 100%; object-fit: contain; object-position: center; visibility: hidden; user-select: none; pointer-events: none; opacity: 1; clip-path: inset(0); filter: saturate(0.88) contrast(0.98); backface-visibility: hidden; }
@@ -169,7 +169,7 @@ button, a { color: inherit; }
 .status-metric i b.filled { background: var(--vermilion); }
 .status-metric em { display: block; margin-top: 6px; color: rgba(48, 42, 36, 0.5); font: normal 7px/1 var(--font-geist-mono), monospace; letter-spacing: 0.08em; }
 
-.aftertaste { position: absolute; z-index: 40; inset: 0; min-height: 100svh; padding: clamp(88px, 12vw, 170px) max(24px, calc((100vw - 940px) / 2)); display: flex; flex-direction: column; justify-content: center; align-items: flex-start; background: linear-gradient(112deg, rgba(255, 255, 255, 0.035), transparent 40%), #302a24; color: var(--paper); }
+.aftertaste { position: fixed; z-index: 40; inset: 0; min-height: 100svh; padding: clamp(88px, 12vw, 170px) max(24px, calc((100vw - 940px) / 2)); display: flex; flex-direction: column; justify-content: center; align-items: flex-start; background: linear-gradient(112deg, rgba(255, 255, 255, 0.035), transparent 40%), #302a24; color: var(--paper); }
 .section-kicker { margin: 0 0 27px; color: #d58a71; font: 600 10px/1 var(--font-geist-mono), monospace; letter-spacing: 0.32em; }
 .aftertaste h2 { max-width: 900px; margin: 0; font: 500 clamp(38px, 6.5vw, 84px)/1.28 "Yu Mincho", "Hiragino Mincho ProN", serif; letter-spacing: 0.055em; }
 .aftertaste-copy { max-width: 620px; margin: 38px 0 0; color: rgba(251, 247, 238, 0.68); font: 500 clamp(14px, 1.35vw, 17px)/2 "Yu Mincho", serif; letter-spacing: 0.065em; }
@@ -191,7 +191,7 @@ button, a { color: inherit; }
 @keyframes seam-reverse { from { left: 0; } to { left: 100%; } }
 
 @media (max-width: 640px) {
-  .tasting-stage { grid-template-rows: 58px minmax(0, 1fr) clamp(250px, 38svh, 330px); background: var(--washi); }
+  .tasting-stage { grid-template-rows: 58px auto clamp(250px, 38svh, 330px); background: var(--washi); }
   .site-header { height: auto; padding: 0 16px; column-gap: 8px; background: linear-gradient(180deg, rgba(247, 242, 232, 0.96), rgba(247, 242, 232, 0.88)); }
   .brand { font-size: 13px; }
   .brand-mark { width: 27px; }
