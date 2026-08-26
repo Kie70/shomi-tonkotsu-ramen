@@ -78,7 +78,7 @@ button, a { color: inherit; }
 .dish-heading span { display: block; margin-top: 7px; color: rgba(48, 42, 36, 0.65); font: 500 9px/1 serif; letter-spacing: 0.18em; }
 
 .ramen-figure { position: absolute; z-index: -1; inset: 0; margin: 0; overflow: hidden; background: #d8bd94; }
-.ramen-figure::before { content: ""; position: absolute; z-index: 0; inset: -10px; background: #d8bd94 url('/images/ramen-100-lqip.webp') center / cover no-repeat; filter: blur(8px) saturate(0.82); transform: scale(1.025); opacity: 1; transition: opacity 180ms ease-out; }
+.ramen-figure::before { content: ""; position: absolute; z-index: 0; inset: -10px; background: #d8bd94 var(--lqip-image) center / cover no-repeat; filter: blur(8px) saturate(0.82); transform: scale(1.025); opacity: 1; transition: opacity 180ms ease-out; }
 .ramen-figure.is-ready::before { opacity: 0; }
 .ramen-frame-buffer { position: absolute; z-index: 1; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: var(--desktop-focus, 50% 53%); visibility: hidden; user-select: none; pointer-events: none; opacity: 1; clip-path: inset(0); filter: saturate(0.88) contrast(0.98); backface-visibility: hidden; }
 .ramen-frame-buffer.is-current { z-index: 1; visibility: visible; clip-path: inset(0); }

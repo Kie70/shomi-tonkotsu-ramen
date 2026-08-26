@@ -8,6 +8,8 @@
 
 [打开赏味豚骨拉面](https://shomi-tonkotsu-ramen.zhuby933.chatgpt.site/?transition=shoji#top)（当前为私有站点）
 
+[GitHub Pages 公开体验](https://kie70.github.io/shomi-tonkotsu-ramen/?transition=shoji#top)
+
 可通过地址参数直接体验两套帧切换方式：
 
 - `?transition=shoji`：障子推拉切，使用无透明叠化的横向揭幕效果。
